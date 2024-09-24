@@ -1,6 +1,7 @@
 import os
 import logging
 import asyncio
+import time
 from supabase import create_client, Client
 import yt_dlp
 import cv2  # OpenCV for video processing
@@ -14,18 +15,22 @@ CLIPS_BUCKET = os.getenv('CLIPS_BUCKET')
 # Crear cliente de Supabase
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Función para descargar videos con yt-dlp
+# Función para descargar videos con yt-dlp usando cookies para evitar bloqueos
 def download_video(url):
     ydl_opts = {
         'format': 'best',
         'noplaylist': True,
-        'quiet': True
+        'quiet': True,
+        'cookiefile': 'cookies.txt'  # Usar cookies para evitar problemas de autenticación
     }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info_dict = ydl.extract_info(url, download=False)
-        video_title = info_dict.get('title', None)
-        ydl.download([url])
-        return info_dict
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=False)
+            logging.info(f"Downloaded video information for {url}")
+            return info_dict
+    except yt_dlp.utils.DownloadError as e:
+        logging.error(f"Failed to download video {url}: {str(e)}")
+        return None
 
 # Función para subir a Supabase Storage
 def upload_to_supabase_storage(file_path, bucket):
@@ -114,11 +119,13 @@ async def process_batch(urls):
     for video_id, url in enumerate(urls):
         logging.info(f"Processing Video ID {video_id}: {url}")
         video_info = download_video(url)
-        yt_video_id = video_info.get('id')
-        video_path = f"{yt_video_id}.mp4"  # Asume que se guarda con este nombre
-        clips = process_video(video_path, yt_video_id)
-        if clips:
-            upload_to_supabase(url, video_id, yt_video_id, video_path, video_info, clips)
+        if video_info:
+            yt_video_id = video_info.get('id')
+            video_path = f"{yt_video_id}.mp4"  # Asume que se guarda con este nombre
+            clips = process_video(video_path, yt_video_id)
+            if clips:
+                upload_to_supabase(url, video_id, yt_video_id, video_path, video_info, clips)
+        time.sleep(10)  # Espera 10 segundos antes de procesar el siguiente video para evitar bloqueos
 
 # URLs de prueba
 TEST_URLS = ["https://www.youtube.com/watch?v=EYwLa1ZWD2o"]
