@@ -121,7 +121,7 @@ async def process_batch(urls):
             upload_to_supabase(url, video_id, yt_video_id, video_path, video_info, clips)
 
 # URLs de prueba
-TEST_URLS = ["https://www.youtube.com/watch?v=sample_video"]
+TEST_URLS = ["https://www.youtube.com/watch?v=EYwLa1ZWD2o"]
 
 # Main function
 if __name__ == "__main__":
