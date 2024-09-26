@@ -6,6 +6,7 @@ import yt_dlp
 import cv2  # OpenCV para el procesamiento de videos
 import time  # Para limitar las solicitudes si es necesario
 
+
 # Variables de entorno obtenidas de Render
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
