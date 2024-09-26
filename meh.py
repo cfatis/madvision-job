@@ -4,8 +4,7 @@ import asyncio
 from supabase import create_client
 import yt_dlp
 import cv2  # OpenCV para el procesamiento de videos
-import time  # Para limitar las solicitudes si es necesario
-
+import time  # Para limitar las solicitudes y evitar bloqueos
 
 # Variables de entorno obtenidas de Render
 SUPABASE_URL = os.getenv('SUPABASE_URL')
@@ -16,13 +15,17 @@ CLIPS_BUCKET = os.getenv('CLIPS_BUCKET')
 # Crear cliente de Supabase
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Función para descargar videos con yt-dlp, usando cookies para evitar el bloqueo
+# Ruta correcta al archivo de cookies
+COOKIE_FILE = 'cookies.txt'  # Asegúrate de que el archivo esté en la misma carpeta que el script o ajusta la ruta
+
+# Función para descargar videos con yt-dlp, incluyendo un delay para evitar el bloqueo de YouTube
 def download_video(url):
+    time.sleep(60)  # Añade una espera de 60 segundos entre solicitudes para evitar el bloqueo
     ydl_opts = {
         'format': 'best',
         'noplaylist': True,
         'quiet': True,
-        'cookiefile': 'cookies.txt'  # Ruta al archivo de cookies
+        'cookiefile': COOKIE_FILE  # Asegúrate de que esta ruta es correcta
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -59,10 +62,19 @@ def process_video(video_path, yt_video_id):
     clips = []
     try:
         cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():  # Verifica si el video se abrió correctamente
+            logging.error(f"Failed to open video file {video_path}")
+            return []
+
         length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         fps = int(cap.get(cv2.CAP_PROP_FPS))
+        
+        if fps == 0:  # Evita la división por cero
+            logging.error(f"FPS is zero for video {video_path}")
+            return []
+        
         duration = length / fps
-        clip_duration = 60  # Duración de cada clip (60 segundos en este ejemplo)
+        clip_duration = 60  # Duración de cada clip en segundos
         num_clips = int(duration // clip_duration)
         for i in range(num_clips):
             start_time = i * clip_duration
@@ -129,7 +141,7 @@ async def process_batch(urls):
             logging.error(f"Video download failed for {url}")
 
 # URLs de prueba
-TEST_URLS = ["https://www.youtube.com/watch?v=dmqoqVwFopE"]
+TEST_URLS = ["https://www.youtube.com/watch?v=sample_video"]
 
 # Función principal
 if __name__ == "__main__":
