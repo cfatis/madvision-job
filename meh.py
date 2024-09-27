@@ -15,17 +15,21 @@ CLIPS_BUCKET = os.getenv('CLIPS_BUCKET')
 # Crear cliente de Supabase
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Ruta correcta al archivo de cookies
-COOKIE_FILE = 'cookies.txt'  # Asegúrate de que el archivo esté en la misma carpeta que el script o ajusta la ruta
+# Ruta al archivo de cookies
+COOKIE_FILE = 'cookies.txt'  # Asegúrate de que el archivo cookies.txt es correcto
 
-# Función para descargar videos con yt-dlp, incluyendo un delay para evitar el bloqueo de YouTube
+# Proxy gratuito (IP y puerto obtenido de Free Proxy List o ProxyScrape)
+FREE_PROXY = '159.65.245.255:80'  # Sustituye con el proxy que obtuviste
+
+# Función para descargar videos con yt-dlp, incluyendo un proxy gratuito y un delay
 def download_video(url):
-    time.sleep(60)  # Añade una espera de 60 segundos entre solicitudes para evitar el bloqueo
+    time.sleep(60)  # Añadir una espera para evitar más bloqueos
     ydl_opts = {
         'format': 'best',
         'noplaylist': True,
         'quiet': True,
-        'cookiefile': COOKIE_FILE  # Asegúrate de que esta ruta es correcta
+        'cookiefile': COOKIE_FILE,
+        'proxy': f'http://{FREE_PROXY}'  # Configura el proxy gratuito aquí
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -141,7 +145,7 @@ async def process_batch(urls):
             logging.error(f"Video download failed for {url}")
 
 # URLs de prueba
-TEST_URLS = ["https://www.youtube.com/watch?v=P1YP3Wn0qwk"]
+TEST_URLS = ["https://www.youtube.com/watch?v=lARpY0nIQx0"]
 
 # Función principal
 if __name__ == "__main__":
